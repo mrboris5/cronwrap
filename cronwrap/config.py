@@ -1,62 +1,62 @@
-"""Configuration for cronwrap."""
+"""Configuration model for cronwrap."""
 
 import json
-import os
 from dataclasses import dataclass, field, asdict
+from pathlib import Path
 from typing import Optional
-
-from cronwrap.alerting import AlertConfig
 
 
 @dataclass
 class Config:
-    job_name: str = "unnamed"
     command: str = ""
     retries: int = 0
     retry_delay: float = 5.0
     timeout: Optional[float] = None
-    log_level: str = "INFO"
     log_file: Optional[str] = None
-    alert: AlertConfig = field(default_factory=AlertConfig)
+    log_level: str = "INFO"
+    alert_email: Optional[str] = None
+    alert_on_failure: bool = True
+    alert_on_success: bool = False
+    smtp_host: str = "localhost"
+    smtp_port: int = 25
+    lock_dir: Optional[str] = None
+    lock_timeout: int = 0
+    job_name: Optional[str] = None
+
+
+KNOWN_KEYS = set(Config.__dataclass_fields__.keys())
 
 
 def from_dict(data: dict) -> Config:
-    known = {
-        "job_name", "command", "retries", "retry_delay",
-        "timeout", "log_level", "log_file", "alert",
-    }
-    filtered = {k: v for k, v in data.items() if k in known}
-    alert_data = filtered.pop("alert", {})
-    alert_cfg = AlertConfig(**{k: v for k, v in alert_data.items() if hasattr(AlertConfig, k) or True})
-    # Only pass valid AlertConfig fields
-    alert_fields = {f.name for f in AlertConfig.__dataclass_fields__.values()}
-    alert_cfg = AlertConfig(**{k: v for k, v in alert_data.items() if k in alert_fields})
-    return Config(**filtered, alert=alert_cfg)
+    filtered = {k: v for k, v in data.items() if k in KNOWN_KEYS}
+    return Config(**filtered)
 
 
 def from_file(path: str) -> Config:
-    if not os.path.exists(path):
+    p = Path(path)
+    if not p.exists():
         raise FileNotFoundError(f"Config file not found: {path}")
-    with open(path, "r") as fh:
-        data = json.load(fh)
+    with p.open() as f:
+        data = json.load(f)
     return from_dict(data)
 
 
 def to_dict(cfg: Config) -> dict:
-    d = asdict(cfg)
-    return d
+    return asdict(cfg)
 
 
 def validate(cfg: Config) -> list:
     errors = []
     if not cfg.command:
-        errors.append("'command' must not be empty")
+        errors.append("'command' is required and cannot be empty")
     if cfg.retries < 0:
         errors.append("'retries' must be >= 0")
     if cfg.retry_delay < 0:
         errors.append("'retry_delay' must be >= 0")
     if cfg.timeout is not None and cfg.timeout <= 0:
-        errors.append("'timeout' must be > 0 if set")
-    if cfg.log_level not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
-        errors.append(f"'log_level' invalid: {cfg.log_level}")
+        errors.append("'timeout' must be > 0 if specified")
+    if cfg.smtp_port < 1 or cfg.smtp_port > 65535:
+        errors.append("'smtp_port' must be between 1 and 65535")
+    if cfg.lock_timeout < 0:
+        errors.append("'lock_timeout' must be >= 0")
     return errors
