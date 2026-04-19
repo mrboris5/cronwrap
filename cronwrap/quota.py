@@ -59,3 +59,17 @@ def quota_status(quota_file: str, job_id: str, limit: int) -> str:
     quotas = load_quotas(quota_file)
     used = quotas.get(job_id, 0)
     return f"Job '{job_id}': {used}/{limit} runs used"
+
+
+def get_quota_count(quota_file: str, job_id: str) -> int:
+    """Return the current run count for job_id without modifying it.
+
+    Args:
+        quota_file: Path to the quota storage file.
+        job_id: The job identifier to look up.
+
+    Returns:
+        The number of runs recorded for the job, or 0 if not found.
+    """
+    quotas = load_quotas(quota_file)
+    return quotas.get(job_id, 0)
