@@ -20,7 +20,7 @@ def _parse_weekday(s: str) -> int:
     """Parse weekday name to 0=Mon..6=Sun index."""
     s = s.strip().lower()
     if s not in WEEKDAY_NAMES:
-        raise ValueError(f"Unknown weekday: {s!r}")
+        raise ValueError(f"Unknown weekday: {s!r} (expected one of {', '.join(WEEKDAY_NAMES)})")
     return WEEKDAY_NAMES.index(s)
 
 
@@ -59,9 +59,31 @@ def calendar_reason(
     blocked_weekdays: Optional[List[str]] = None,
     now: Optional[date] = None,
 ) -> str:
+    """Return a human-readable string explaining whether the job is blocked and why."""
     today = now or date.today()
     if blocked_dates and is_blocked_date(blocked_dates, today):
         return f"blocked date {today.isoformat()}"
     if blocked_weekdays and is_blocked_weekday(blocked_weekdays, today):
         return f"blocked weekday {WEEKDAY_NAMES[today.weekday()]}"
     return f"not blocked ({today.isoformat()})"
+
+
+def next_unblocked_date(
+    blocked_dates: Optional[List[str]] = None,
+    blocked_weekdays: Optional[List[str]] = None,
+    now: Optional[date] = None,
+    max_days: int = 365,
+) -> Optional[date]:
+    """Return the next date (starting from today) that is not blocked.
+
+    Searches up to ``max_days`` ahead. Returns ``None`` if no unblocked date
+    is found within that window.
+    """
+    from datetime import timedelta
+
+    today = now or date.today()
+    for offset in range(max_days):
+        candidate = today + timedelta(days=offset)
+        if not calendar_blocked(blocked_dates, blocked_weekdays, candidate):
+            return candidate
+    return None
