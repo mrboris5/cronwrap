@@ -43,6 +43,14 @@ def test_from_file_not_found():
         Config.from_file("/nonexistent/path/config.json")
 
 
+def test_from_file_invalid_json(tmp_path):
+    config_file = tmp_path / "bad.json"
+    config_file.write_text("not valid json {{{")
+
+    with pytest.raises(json.JSONDecodeError):
+        Config.from_file(str(config_file))
+
+
 def test_validate_passes():
     cfg = Config(command="echo ok")
     cfg.validate()  # should not raise
