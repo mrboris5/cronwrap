@@ -28,6 +28,16 @@ def build_profile_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _print_stats(job_id: str, stats: dict) -> None:
+    """Print formatted profile statistics for a job."""
+    print(f"Job:   {job_id}")
+    print(f"Count: {stats['count']}")
+    print(f"Min:   {stats['min']:.4f}s")
+    print(f"Max:   {stats['max']:.4f}s")
+    print(f"Avg:   {stats['avg']:.4f}s")
+    print(f"P95:   {stats['p95']:.4f}s")
+
+
 def profile_main(argv: Optional[List[str]] = None) -> int:
     parser = build_profile_parser()
     args = parser.parse_args(argv)
@@ -41,12 +51,7 @@ def profile_main(argv: Optional[List[str]] = None) -> int:
         if stats is None:
             print(f"No profile data for job '{args.job_id}'.")
             return 1
-        print(f"Job:   {args.job_id}")
-        print(f"Count: {stats['count']}")
-        print(f"Min:   {stats['min']:.4f}s")
-        print(f"Max:   {stats['max']:.4f}s")
-        print(f"Avg:   {stats['avg']:.4f}s")
-        print(f"P95:   {stats['p95']:.4f}s")
+        _print_stats(args.job_id, stats)
         return 0
 
     if args.subcmd == "clear":
