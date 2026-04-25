@@ -84,3 +84,17 @@ def test_get_metrics_returns_data(metrics_file):
     m = get_metrics(metrics_file, "k")
     assert m is not None
     assert m.job_id == "k"
+
+
+def test_record_metric_persists_across_instances(metrics_file):
+    """Verify that metrics recorded in separate calls are persisted to disk
+    and correctly reloaded by a subsequent get_metrics call."""
+    record_metric(metrics_file, "persist_job", success=True, duration=1.0)
+    record_metric(metrics_file, "persist_job", success=True, duration=2.0)
+
+    # Simulate a fresh read from disk by calling get_metrics independently
+    m = get_metrics(metrics_file, "persist_job")
+    assert m is not None
+    assert m.total_runs == 2
+    assert m.success_count == 2
+    assert m.total_duration == pytest.approx(3.0)
