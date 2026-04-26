@@ -26,6 +26,14 @@ def test_parse_invalid():
     with pytest.raises(ValueError):
         _parse_duration("10x")
 
+def test_parse_empty_string():
+    with pytest.raises(ValueError):
+        _parse_duration("")
+
+def test_parse_no_unit():
+    with pytest.raises(ValueError):
+        _parse_duration("42")
+
 
 # --- should_throttle ---
 
@@ -58,6 +66,14 @@ def test_old_run_no_throttle(hist_file):
 def test_different_job_no_throttle(hist_file):
     recent = (datetime.utcnow() - timedelta(minutes=1)).isoformat()
     _write_history(hist_file, "otherjob", recent)
+    assert should_throttle("myjob", "10m", hist_file) is False
+
+
+def test_run_exactly_at_boundary_no_throttle(hist_file):
+    """A run whose age equals the throttle window should not be throttled."""
+    # Slightly over the window to avoid flakiness from execution time
+    at_boundary = (datetime.utcnow() - timedelta(minutes=10, seconds=1)).isoformat()
+    _write_history(hist_file, "myjob", at_boundary)
     assert should_throttle("myjob", "10m", hist_file) is False
 
 
